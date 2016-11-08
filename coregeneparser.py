@@ -2,7 +2,6 @@
 
 # Script to parse orthoMCL/orthAgogue gene clusters and extract just those that are core
 
-import re
 import sys
 import argparse
 import traceback
