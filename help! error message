@@ -1,0 +1,11 @@
+------------- EXCEPTION: Bio::Root::Exception -------------
+MSG: Response Error
+Forbidden
+STACK: Error::throw
+STACK: Bio::Root::Root::throw /usr/local/share/perl/5.14.2/Bio/Root/Root.pm:449
+STACK: Bio::DB::GenericWebAgent::get_Response /usr/local/share/perl/5.14.2/Bio/DB/GenericWebAgent.pm:214
+STACK: Bio::DB::EUtilities::get_Response /usr/local/share/perl/5.14.2/Bio/DB/EUtilities.pm:262
+STACK: Bio::DB::EUtilities::get_Parser /usr/local/share/perl/5.14.2/Bio/DB/EUtilities.pm:345
+STACK: Bio::DB::EUtilities::get_query_translation /usr/local/share/perl/5.14.2/Bio/DB/EUtilities.pm:807
+STACK: databaseQuery.pl:22
+-----------------------------------------------------------
