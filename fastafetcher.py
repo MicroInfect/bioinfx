@@ -72,7 +72,6 @@ def main():
 		if seq.id in keys:
 			print(seq.format("fasta"))
 
-#	SeqIO.write((seq for seq in seqIter if seq.id in keys), sys.stdout, "fasta")
 
 if __name__ == "__main__":
 	main()
