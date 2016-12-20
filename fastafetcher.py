@@ -2,7 +2,6 @@
 # Extract fasta files by their descriptors stored in a separate file.
 # Requires biopython
 
-import StringIO
 from Bio import SeqIO
 import sys
 import traceback
@@ -22,7 +21,7 @@ def getKeys(keyFile):
 	return keys
 
 def main():
-	"""Takes a list of strings in a text file (one per line) and retreives them and their sequences from a provided multifasta."""
+	"""Takes a string or list of strings in a text file (one per line) and retreives them and their sequences from a provided multifasta."""
 	# Parse arguments from the commandline:
 	try:
    		parser = argparse.ArgumentParser(description='Retrieve one or more fastas from a given multifasta.')
@@ -37,7 +36,7 @@ def main():
 			'--keys',
 			action='store',
 			required=True,
-			help='A file of header strings to search the multifasta for. Must be exact. Must be one per line.')
+			help='A string provided directly, or a file of header strings to search the multifasta for. Must be exact. Must be one per line.')
 		parser.add_argument(
 			'-o',
 			'--outfile',
@@ -57,17 +56,24 @@ def main():
 		args = parser.parse_args()
 	
 	except:
-		print "An exception occured with argument parsing. Check your provided options."
+		print('An exception occured with argument parsing. Check your provided options.')
 		traceback.print_exc()
 
 	# Rename args to enable them to be provided to the getKeys function:
-	keyFile = args.keys
-	inFile = args.fasta
-	outFile = args.outfile
+	try:
+		keyFile = args.keys
+		inFile = args.fasta
+		outFile = args.outfile
+	except:
+		print('Variables could not be reassigned properly. Check your provided options.')
+
 # Main code:
 	# Call getKeys() to create the tuple of keys from the provided file:
 	try:
 		keys = getKeys(keyFile)
+	
+	# If -k/--keys was provided with a string, not a file path, the IO error is used as the indicator
+	# to switch to expecting a string only, rather than a file.
 	except IOError:
 		keys = args.keys
 
