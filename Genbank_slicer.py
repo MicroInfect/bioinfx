@@ -24,6 +24,45 @@ import sys
 import argparse
 import traceback
 import warnings
+		
+def convert(genbank):
+	'''Convert the provided genbank to a fasta to BLAST.'''
+	
+	refFasta = "{}.fasta.tmp".format(basename)
+	SeqIO.convert(genbank, 'genbank', refFasta, 'fasta')
+
+	return refFasta
+
+def runBlast(basename, refFasta):
+	'''Synthesise BLAST commands and make system calls'''
+	
+	resultHandle = "{}.blastout.tmp".format(basename)
+	blastdb_cmd = 'makeblastdb -in {0} -dbtype nucl -title temp_blastdb'.format(refFasta)
+	blastn_cmd = 'blastn -query {0} -strand both -task blastn -db {1} -perc_identity 100 -outfmt 6 -out {2} -max_target_seqs 1'.format(fasta, refFasta, resultHandle)
+	print("Constructing BLAST Database: " + '\n' + blastdb_cmd)
+	print("BLASTing: " + '\n' + blastn_cmd)
+	subprocess.Popen(blastdb_cmd,shell=True,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+	subprocess.Popen(blastn_cmd,shell=True,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+	
+	return resultHandle
+	     
+def getIndices(resultHandle):
+	'''If not provided directly by the user, this function retrieves the best BLAST hit's indices.'''
+	
+	blast_result = SearchIO.read(resultHandle, 'blast-tab')
+	print(blast_result[0][0])
+	start = blast_result[0][0].hit_start
+	end = blast_result[0][0].hit_end
+		
+	return start, end
+
+def slice(start, end, genbank):
+	'''Subset the provided genbank to return the sub record.'''
+	
+	seqObj = SeqIO.read(genbank, 'genbank')
+	subRecord = seqObj[start:end]
+
+	return subRecord
 
 
 def main():
@@ -55,7 +94,7 @@ def main():
 			help='Integer base index to slice to.')
 		parser.add_argument(
 			'-b',
-			'--blast_mode',
+			'--blastmode',
 			action='store_true',
 			default=False,
 			help='(True|False - If true, you can provide an input fasta, and BLAST will be called to find your sequence indices in the genbank')
@@ -68,51 +107,36 @@ def main():
 	except:
 		print "An exception occured with argument parsing. Check your provided options."
 		traceback.print_exc()
-
-
+	
+	genbank   =  args.genbank
+	fasta     =  args.fasta
+	split     =  os.path.splitext(args.genbank)
+	basename  =  os.path.basename(split[0])
+	start     =  args.start
+	end       =  args.end
+	blastMode =  args.blastmode
+	outfile   =  args.outfile
 
 # Main code:
-	if args.blast_mode is not False:
-		# Grab file names etc
-		split = os.path.splitext(args.genbank)
-		basename = os.path.basename(split[0])
-		ref_fasta = "{}.fasta.tmp".format(basename)
-		result_handle = "{}.blastout.tmp".format(basename)
-                SeqIO.convert(args.genbank, 'genbank', ref_fasta, 'fasta')
-		
-		# Synthesis a BLAST command and make system call
-		blastdb_cmd = 'makeblastdb -in {0} -dbtype nucl -title temp_blastdb'.format(ref_fasta)
-		blastn_cmd = 'blastn -query {0} -strand both -task blastn -db {1} -perc_identity 100 -outfmt 6 -out {2} -max_target_seqs 1'.format(args.fasta, ref_fasta, result_handle)
-		print("Constructing BLAST Database: " + blastdb_cmd)
-		print("BLASTing: " + blastn_cmd)
-		subprocess.Popen(blastdb_cmd,shell=True,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-		subprocess.Popen(blastn_cmd,shell=True,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-		
-		# Read in BLAST result and slice
-		blast_result = SearchIO.read(result_handle, 'blast-tab')
-		print(blast_result[0][0])
-		args.start = blast_result[0][0].hit_start
-		args.end = blast_result[0][0].hit_end
-		seq_obj = SeqIO.read(args.genbank, 'genbank')
-		sub_record = seq_obj[args.start:args.end]
-		
-		if args.outfile is not None:
-            	  	SeqIO.write(sub_record, args.outfile, "genbank")
-		else:
-			print(sub_record.format('genbank'))
-		
+	if blastMode is not False:
+		refFasta = convert(genbank)
+		resultHandle = runBlast(basename, refFasta)
+		start, end = getIndices(resultHandle)
         else:
 		# If not using blast, and simply specifying the co-ordinates, the code below kicks in.
-                if args.start is None or args.end is None:
+		
+		# If the indices are still unpopulated at this point, script breaks.
+                if start is None or end is None:
                         print('No slice indices have been specified or retrieved from blastout')
-                        sys.exit(0)
+                        sys.exit(1)
                 else:
-                        seq_obj = SeqIO.read(args.genbank, 'genbank')
-			sub_record = seq_obj[args.start:args.end]
-			if args.outfile is not None:
-                        	SeqIO.write(sub_record, args.outfile, "genbank")
-			else:
-				print(sub_record.format('genbank'))
+			subRecord = slice(start, end, genbank)
+	
+	
+	if outfile is not None:
+		SeqIO.write(subRecord, outfile, "genbank")
+	else:
+		print(subRecord.format('genbank'))
 
 
 if __name__ == "__main__":
