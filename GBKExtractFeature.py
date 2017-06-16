@@ -1,7 +1,7 @@
 from Bio import SeqIO
 import sys
 
-product = 'NADH dehydrogenase subunit 5'
+product = str(sys.argv[3])
 
 with open(sys.argv[2], 'w') as nfh:
         for rec in SeqIO.parse(sys.argv[1], "genbank"):
